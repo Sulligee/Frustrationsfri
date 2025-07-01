@@ -1,0 +1,2060 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { Send, RotateCcw, Heart, MessageCircle, Mic, MicOff, Volume2, VolumeX } from 'lucide-react';
+
+const FrustrationApp = () => {
+  // SEO and Meta Information
+  const SEO_DATA = {
+    title: "FrustrationsFri - Slip dine frustrationer løs sikkert",
+    description: "Digital platform til sikker udladning af frustrationer. 12 scenarier, AI-dreven samtale, stemme-support. Håndter stress, vrede og irritation konstruktivt.",
+    keywords: "frustration, stress, vrede, udladning, mental helbred, AI terapi, mindfulness, anger management, dansk",
+    url: "https://frustrationsfri.dk",
+    image: "/og-image.jpg"
+  };
+
+// Find Ro Component - Comprehensive relaxation and reflection
+const FindRoComponent = ({ 
+  sessionFeedback, 
+  setSessionFeedback, 
+  selectedScenario, 
+  selectedIntensity, 
+  messageCount, 
+  saveSessionToHistory, 
+  startNewSession 
+}) => {
+  const [currentStep, setCurrentStep] = useState('welcome');
+  const [selectedExercise, setSelectedExercise] = useState(null);
+  const [exerciseProgress, setExerciseProgress] = useState(0);
+  const [isExerciseActive, setIsExerciseActive] = useState(false);
+  const [journalText, setJournalText] = useState('');
+  const [reflectionAnswers, setReflectionAnswers] = useState({});
+
+  const exercises = [
+    {
+      id: 'breathing',
+      title: '🌬️ Dyb Vejrtrækning',
+      description: 'Klassisk rolighedsøvelse - 4-4-6 vejrtrækning',
+      duration: 60,
+      steps: [
+        'Find en behagelig stilling',
+        'Luk øjnene eller sænk blikket',
+        'Indånd langsomt gennem næsen i 4 sekunder',
+        'Hold vejret i 4 sekunder',
+        'Udånd gennem munden i 6 sekunder',
+        'Gentag rytmen roligt'
+      ]
+    },
+    {
+      id: 'bodyscan',
+      title: '🧘‍♀️ Body Scan',
+      description: 'Scan din krop fra tå til top og slip spændinger',
+      duration: 180,
+      steps: [
+        'Læg dig ned eller sid komfortabelt',
+        'Start ved dine tæer - mærk dem',
+        'Bevæg opmærksomheden til dine fødder',
+        'Scan langsomt op gennem benene',
+        'Mærk din mave og brystkasse',
+        'Læg mærke til dine arme og hænder',
+        'Afslut ved hovedet og ansigtet',
+        'Mærk hele kroppen som en helhed'
+      ]
+    },
+    {
+      id: 'progressive',
+      title: '💪 Progressiv Muskelafslapning',
+      description: 'Spænd og slip muskelgrupper for dyb afslapning',
+      duration: 240,
+      steps: [
+        'Sid eller læg dig bekvemt',
+        'Start med fødderne - spænd i 5 sek, slip',
+        'Læg og hofter - spænd og slip',
+        'Mave og ryg - spænd og slip',
+        'Hænder til knytnæver - spænd og slip',
+        'Arme og skuldre - spænd og slip',
+        'Ansigt og pande - spænd og slip',
+        'Mærk den totale afslapning'
+      ]
+    },
+    {
+      id: 'gratitude',
+      title: '🙏 Taknemmeligheds-meditation',
+      description: 'Fokuser på positive ting i dit liv',
+      duration: 120,
+      steps: [
+        'Luk øjnene og tag et dybt vejrtræk',
+        'Tænk på 3 ting du er taknemmelig for',
+        'Mærk taknemmeligheden i din krop',
+        'Tænk på en person du er glad for',
+        'Send kærlige tanker til dem',
+        'Inkluder dig selv i kærligheden',
+        'Afslut med et smil'
+      ]
+    }
+  ];
+
+  const reflectionQuestions = selectedScenario ? [
+    // Spørgsmål efter frustration-session
+    {
+      id: 'feelings',
+      question: 'Hvordan føler du dig nu sammenlignet med da du startede?',
+      placeholder: 'Beskriv dine følelser nu...'
+    },
+    {
+      id: 'insights',
+      question: 'Hvad har du lært om din frustration i dag?',
+      placeholder: 'Mine indsigter...'
+    },
+    {
+      id: 'patterns',
+      question: 'Kan du se nogle mønstre i hvad der udløser din frustration?',
+      placeholder: 'Jeg bemærker at...'
+    },
+    {
+      id: 'gratitude',
+      question: 'Hvad er du taknemmelig for lige nu, selvom det har været svært?',
+      placeholder: 'Jeg er taknemmelig for...'
+    },
+    {
+      id: 'selfcare',
+      question: 'Hvordan kan du være sød ved dig selv resten af dagen?',
+      placeholder: 'Jeg kan...'
+    }
+  ] : [
+    // Generelle refleksions-spørgsmål for selvstændig brug
+    {
+      id: 'day_feelings',
+      question: 'Hvordan har du det lige nu? Hvad fylder dine tanker?',
+      placeholder: 'Jeg føler mig... Mine tanker kredser om...'
+    },
+    {
+      id: 'energy',
+      question: 'Hvad giver dig energi, og hvad trækker energi fra dig?',
+      placeholder: 'Energi kommer fra... Energi går til...'
+    },
+    {
+      id: 'gratitude_general',
+      question: 'Hvad er du mest taknemmelig for i dit liv lige nu?',
+      placeholder: 'Jeg sætter pris på...'
+    },
+    {
+      id: 'growth',
+      question: 'Hvordan vokser du som person? Hvad lærer du om dig selv?',
+      placeholder: 'Jeg opdager at jeg...'
+    },
+    {
+      id: 'intentions',
+      question: 'Hvad er dine intentioner for resten af dagen/ugen?',
+      placeholder: 'Jeg vil fokusere på...'
+    }
+  ];
+
+  const affirmations = [
+    "Du er stærk og modig for at have udtrykt dine følelser",
+    "Det er okay at føle frustration - det gør dig til et menneske",
+    "Du fortjener kærlighed og respekt, især fra dig selv",
+    "Hver gang du konfronterer dine følelser, vokser du",
+    "Du har ret til at føle det du føler",
+    "Din stemme og dine følelser er vigtige",
+    "Du håndterede det godt i dag",
+    "Du er på en rejse mod større selvaccept"
+  ];
+
+  const handleExerciseStart = (exercise) => {
+    setSelectedExercise(exercise);
+    setCurrentStep('exercise');
+    setIsExerciseActive(true);
+    setExerciseProgress(0);
+
+    // Simulate exercise progress
+    const progressInterval = setInterval(() => {
+      setExerciseProgress(prev => {
+        if (prev >= 100) {
+          clearInterval(progressInterval);
+          setIsExerciseActive(false);
+          return 100;
+        }
+        return prev + (100 / (exercise.duration / 2)); // Update every 2 seconds
+      });
+    }, 2000);
+  };
+
+  if (currentStep === 'welcome') {
+    return (
+      <div className="bg-gradient-to-br from-green-100 via-blue-100 to-purple-100 border-t p-6 min-h-screen">
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center mb-8">
+            <div className="w-20 h-20 bg-gradient-to-br from-green-400 to-blue-500 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Heart className="w-10 h-10 text-white" />
+            </div>
+            <h3 className="text-3xl font-bold text-gray-800 mb-2">Find Ro 🌅</h3>
+            <p className="text-lg text-gray-600 mb-2">Tillykke! Du har gennemført din frustrations-session</p>
+            <p className="text-gray-500">Nu er det tid til at finde indre ro og fred</p>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-6 mb-8">
+            <div className="bg-white rounded-xl p-6 shadow-lg">
+              <h4 className="text-xl font-semibold text-gray-800 mb-4">🧘‍♀️ Afspændingsøvelser</h4>
+              <p className="text-gray-600 mb-4">
+                Vælg en øvelse der taler til dig lige nu. Tag dig tid til at slippe spændinger og finde ro.
+              </p>
+              <button
+                onClick={() => setCurrentStep('exercises')}
+                className="bg-gradient-to-r from-green-500 to-blue-500 text-white px-6 py-3 rounded-lg hover:from-green-600 hover:to-blue-600 transition-all duration-200 w-full font-semibold"
+              >
+                Start Afspænding
+              </button>
+            </div>
+
+            <div className="bg-white rounded-xl p-6 shadow-lg">
+              <h4 className="text-xl font-semibold text-gray-800 mb-4">💭 Refleksion</h4>
+              <p className="text-gray-600 mb-4">
+                Reflekter over din oplevelse og skriv dine tanker ned. Dette hjælper med at integrere din læring.
+              </p>
+              <button
+                onClick={() => setCurrentStep('reflection')}
+                className="bg-gradient-to-r from-purple-500 to-pink-500 text-white px-6 py-3 rounded-lg hover:from-purple-600 hover:to-pink-600 transition-all duration-200 w-full font-semibold"
+              >
+                Start Refleksion
+              </button>
+            </div>
+          </div>
+
+          {/* Quick feedback if not given yet */}
+          {!sessionFeedback && (
+            <div className="bg-white rounded-xl p-6 shadow-lg mb-6">
+              <h4 className="text-lg font-semibold text-gray-800 mb-3 text-center">Hvor hjælpsom var din session?</h4>
+              <div className="flex justify-center gap-3 mb-3">
+                {[1, 2, 3, 4, 5].map(rating => (
+                  <button
+                    key={rating}
+                    onClick={() => {
+                      setSessionFeedback(rating);
+                      saveSessionToHistory(selectedScenario, selectedIntensity, messageCount, rating);
+                    }}
+                    className="text-3xl hover:scale-125 transition-transform"
+                  >
+                    ⭐
+                  </button>
+                ))}
+              </div>
+              <p className="text-center text-sm text-gray-500">1 = Ikke hjælpsomt, 5 = Meget hjælpsomt</p>
+            </div>
+          )}
+
+          {sessionFeedback && (
+            <div className="bg-blue-50 rounded-xl p-4 mb-6 text-center">
+              <p className="text-blue-700">
+                Tak for din feedback! Du gav {sessionFeedback}/5 stjerner ⭐
+              </p>
+            </div>
+          )}
+
+          <div className="text-center">
+            <button
+              onClick={startNewSession}
+              className="bg-gray-600 text-white px-8 py-3 rounded-lg hover:bg-gray-700 transition-colors font-semibold"
+            >
+              Start Ny Session
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (currentStep === 'exercises') {
+    return (
+      <div className="bg-gradient-to-br from-green-100 via-blue-100 to-purple-100 border-t p-6 min-h-screen">
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center mb-8">
+            <button
+              onClick={() => setCurrentStep('welcome')}
+              className="text-gray-600 hover:text-gray-800 transition-colors mb-4"
+            >
+              ← Tilbage
+            </button>
+            <h3 className="text-3xl font-bold text-gray-800 mb-2">Afspændingsøvelser 🧘‍♀️</h3>
+            <p className="text-gray-600">Vælg den øvelse der taler til dig</p>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-6">
+            {exercises.map(exercise => (
+              <div key={exercise.id} className="bg-white rounded-xl p-6 shadow-lg hover:shadow-xl transition-shadow">
+                <div className="text-center mb-4">
+                  <h4 className="text-xl font-semibold text-gray-800 mb-2">{exercise.title}</h4>
+                  <p className="text-gray-600 text-sm mb-3">{exercise.description}</p>
+                  <p className="text-gray-500 text-xs">⏱️ {Math.floor(exercise.duration / 60)} minutter</p>
+                </div>
+                
+                <button
+                  onClick={() => handleExerciseStart(exercise)}
+                  className="bg-gradient-to-r from-green-500 to-blue-500 text-white px-6 py-3 rounded-lg hover:from-green-600 hover:to-blue-600 transition-all duration-200 w-full font-semibold"
+                >
+                  Start Øvelse
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (currentStep === 'exercise' && selectedExercise) {
+    return (
+      <div className="bg-gradient-to-br from-green-100 via-blue-100 to-purple-100 border-t p-6 min-h-screen">
+        <div className="max-w-2xl mx-auto">
+          <div className="text-center mb-8">
+            <h3 className="text-3xl font-bold text-gray-800 mb-2">{selectedExercise.title}</h3>
+            <p className="text-gray-600">{selectedExercise.description}</p>
+          </div>
+
+          <div className="bg-white rounded-xl p-8 shadow-lg mb-6">
+            {/* Progress bar */}
+            <div className="mb-6">
+              <div className="flex justify-between text-sm text-gray-600 mb-2">
+                <span>Fremgang</span>
+                <span>{Math.round(exerciseProgress)}%</span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-3">
+                <div 
+                  className="bg-gradient-to-r from-green-500 to-blue-500 h-3 rounded-full transition-all duration-500"
+                  style={{ width: `${exerciseProgress}%` }}
+                ></div>
+              </div>
+            </div>
+
+            {/* Exercise steps */}
+            <div className="space-y-3">
+              {selectedExercise.steps.map((step, index) => (
+                <div key={index} className="flex items-start gap-3">
+                  <div className="w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm font-semibold flex-shrink-0 mt-0.5">
+                    {index + 1}
+                  </div>
+                  <p className="text-gray-700">{step}</p>
+                </div>
+              ))}
+            </div>
+
+            {exerciseProgress >= 100 && (
+              <div className="mt-6 p-4 bg-green-50 rounded-lg border border-green-200">
+                <p className="text-green-800 text-center font-medium">
+                  🌟 Fantastisk! Du har gennemført øvelsen. Mærk efter hvordan du har det nu.
+                </p>
+              </div>
+            )}
+          </div>
+
+          <div className="text-center space-y-3">
+            {exerciseProgress >= 100 && (
+              <button
+                onClick={() => setCurrentStep('affirmations')}
+                className="bg-gradient-to-r from-purple-500 to-pink-500 text-white px-8 py-3 rounded-lg hover:from-purple-600 hover:to-pink-600 transition-all duration-200 font-semibold mr-3"
+              >
+                Fortsæt til Bekræftelser
+              </button>
+            )}
+            
+            <button
+              onClick={() => setCurrentStep('exercises')}
+              className="bg-gray-500 text-white px-6 py-3 rounded-lg hover:bg-gray-600 transition-colors"
+            >
+              Vælg Anden Øvelse
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (currentStep === 'affirmations') {
+    return (
+      <div className="bg-gradient-to-br from-green-100 via-blue-100 to-purple-100 border-t p-6 min-h-screen">
+        <div className="max-w-2xl mx-auto">
+          <div className="text-center mb-8">
+            <h3 className="text-3xl font-bold text-gray-800 mb-2">Positive Bekræftelser ✨</h3>
+            <p className="text-gray-600">Lad disse ord synke ind og styrke dig</p>
+          </div>
+
+          <div className="space-y-4 mb-8">
+            {affirmations.map((affirmation, index) => (
+              <div key={index} className="bg-white rounded-xl p-6 shadow-lg text-center">
+                <p className="text-lg text-gray-800 font-medium leading-relaxed">
+                  "{affirmation}"
+                </p>
+              </div>
+            ))}
+          </div>
+
+          <div className="text-center space-y-3">
+            <button
+              onClick={() => setCurrentStep('reflection')}
+              className="bg-gradient-to-r from-purple-500 to-pink-500 text-white px-8 py-3 rounded-lg hover:from-purple-600 hover:to-pink-600 transition-all duration-200 font-semibold mr-3"
+            >
+              Gå til Refleksion
+            </button>
+            
+            <button
+              onClick={() => setCurrentStep('welcome')}
+              className="bg-gray-500 text-white px-6 py-3 rounded-lg hover:bg-gray-600 transition-colors"
+            >
+              Tilbage til Start
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (currentStep === 'reflection') {
+    return (
+      <div className="bg-gradient-to-br from-green-100 via-blue-100 to-purple-100 border-t p-6 min-h-screen">
+        <div className="max-w-3xl mx-auto">
+          <div className="text-center mb-8">
+            <button
+              onClick={() => setCurrentStep('welcome')}
+              className="text-gray-600 hover:text-gray-800 transition-colors mb-4"
+            >
+              ← Tilbage
+            </button>
+            <h3 className="text-3xl font-bold text-gray-800 mb-2">Refleksion 💭</h3>
+            <p className="text-gray-600">Tag dig tid til at reflektere over din oplevelse</p>
+          </div>
+
+          <div className="space-y-6">
+            {reflectionQuestions.map((question, index) => (
+              <div key={question.id} className="bg-white rounded-xl p-6 shadow-lg">
+                <h4 className="text-lg font-semibold text-gray-800 mb-3">
+                  {index + 1}. {question.question}
+                </h4>
+                <textarea
+                  value={reflectionAnswers[question.id] || ''}
+                  onChange={(e) => setReflectionAnswers(prev => ({
+                    ...prev,
+                    [question.id]: e.target.value
+                  }))}
+                  placeholder={question.placeholder}
+                  className="w-full p-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
+                  rows="3"
+                />
+              </div>
+            ))}
+
+            <div className="bg-white rounded-xl p-6 shadow-lg">
+              <h4 className="text-lg font-semibold text-gray-800 mb-3">
+                Fri journaling - Skriv alt hvad der kommer til dig
+              </h4>
+              <textarea
+                value={journalText}
+                onChange={(e) => setJournalText(e.target.value)}
+                placeholder="Skriv dine tanker, følelser, indsigter..."
+                className="w-full p-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
+                rows="6"
+              />
+            </div>
+          </div>
+
+          <div className="text-center mt-8">
+            <button
+              onClick={() => setCurrentStep('complete')}
+              className="bg-gradient-to-r from-green-500 to-blue-500 text-white px-8 py-3 rounded-lg hover:from-green-600 hover:to-blue-600 transition-all duration-200 font-semibold"
+            >
+              Afslut Find Ro Session
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (currentStep === 'complete') {
+    return (
+      <div className="bg-gradient-to-br from-green-100 via-blue-100 to-purple-100 border-t p-6 min-h-screen">
+        <div className="max-w-2xl mx-auto text-center">
+          <div className="mb-8">
+            <div className="w-24 h-24 bg-gradient-to-br from-green-400 to-purple-500 rounded-full flex items-center justify-center mx-auto mb-6">
+              <Heart className="w-12 h-12 text-white" />
+            </div>
+            <h3 className="text-3xl font-bold text-gray-800 mb-4">Du har fundet din ro 🌟</h3>
+            <p className="text-lg text-gray-600 mb-6">
+              Fantastisk arbejde! Du har gennemført en fuld frustrations- og ro-session.
+            </p>
+          </div>
+
+          <div className="bg-white rounded-xl p-6 shadow-lg mb-8">
+            <h4 className="text-xl font-semibold text-gray-800 mb-4">Husk på resten af dagen:</h4>
+            <div className="space-y-3 text-left">
+              <div className="flex items-center gap-3">
+                <span className="text-green-500">✓</span>
+                <span>Du har ret til at føle det du føler</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="text-green-500">✓</span>
+                <span>Du håndterede din frustration modigt</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="text-green-500">✓</span>
+                <span>Vær sød ved dig selv resten af dagen</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="text-green-500">✓</span>
+                <span>Kom gerne tilbage når du har brug for det</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <button
+              onClick={startNewSession}
+              className="bg-gradient-to-r from-red-500 via-orange-500 to-yellow-500 text-white px-8 py-3 rounded-lg hover:shadow-lg transition-all duration-200 font-semibold"
+            >
+              Start Ny Frustration Session
+            </button>
+            
+            <div>
+              <button
+                onClick={() => setCurrentStep('welcome')}
+                className="text-gray-600 hover:text-gray-800 transition-colors text-sm"
+              >
+                Tilbage til Find Ro menu
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return null;
+};
+
+  const [currentScreen, setCurrentScreen] = useState('welcome');
+  const [selectedScenario, setSelectedScenario] = useState(null);
+  const [selectedIntensity, setSelectedIntensity] = useState('medium');
+  const [messages, setMessages] = useState([]);
+  const [inputMessage, setInputMessage] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [sessionPhase, setSessionPhase] = useState('provokation');
+  const [messageCount, setMessageCount] = useState(0);
+  const [isListening, setIsListening] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [voiceEnabled, setVoiceEnabled] = useState(true);
+  const [sessionHistory, setSessionHistory] = useState([]);
+  const [showHistory, setShowHistory] = useState(false);
+  const [sessionFeedback, setSessionFeedback] = useState(null);
+  const [showInstallPrompt, setShowInstallPrompt] = useState(false);
+  const [errors, setErrors] = useState([]);
+  const [analytics, setAnalytics] = useState({
+    pageViews: 0,
+    sessionsStarted: 0,
+    messagesCount: 0,
+    errorCount: 0
+  });
+  const messagesEndRef = useRef(null);
+  const recognitionRef = useRef(null);
+  const synthRef = useRef(null);
+  const deferredPromptRef = useRef(null);
+
+  // SEO Meta Tags Setup
+  useEffect(() => {
+    document.title = SEO_DATA.title;
+    
+    // Update or create meta tags
+    const updateMetaTag = (name, content, isProperty = false) => {
+      const selector = isProperty ? `meta[property="${name}"]` : `meta[name="${name}"]`;
+      let metaTag = document.querySelector(selector);
+      
+      if (!metaTag) {
+        metaTag = document.createElement('meta');
+        if (isProperty) {
+          metaTag.setAttribute('property', name);
+        } else {
+          metaTag.setAttribute('name', name);
+        }
+        document.head.appendChild(metaTag);
+      }
+      metaTag.setAttribute('content', content);
+    };
+
+    // Basic SEO tags
+    updateMetaTag('description', SEO_DATA.description);
+    updateMetaTag('keywords', SEO_DATA.keywords);
+    updateMetaTag('author', 'FrustrationsFri Team');
+    updateMetaTag('robots', 'index, follow');
+    updateMetaTag('language', 'Danish');
+    
+    // Open Graph tags for social sharing
+    updateMetaTag('og:title', SEO_DATA.title, true);
+    updateMetaTag('og:description', SEO_DATA.description, true);
+    updateMetaTag('og:type', 'website', true);
+    updateMetaTag('og:locale', 'da_DK', true);
+    
+    // Mobile optimization
+    updateMetaTag('theme-color', '#EF4444');
+    updateMetaTag('apple-mobile-web-app-capable', 'yes');
+    updateMetaTag('apple-mobile-web-app-title', 'FrustrationsFri');
+    
+  }, []);
+
+  // Error logging and analytics
+  const logError = (error, context = '') => {
+    const errorLog = {
+      id: Date.now(),
+      message: error.message || error,
+      context,
+      timestamp: new Date().toISOString(),
+      userAgent: navigator.userAgent,
+      url: window.location.href
+    };
+    
+    setErrors(prev => [errorLog, ...prev.slice(0, 9)]); // Keep last 10 errors
+    setAnalytics(prev => ({ ...prev, errorCount: prev.errorCount + 1 }));
+    
+    // Log to console for debugging
+    console.error(`[FrustrationsFri Error] ${context}:`, error);
+  };
+
+  // Analytics tracking
+  const trackEvent = (event, data = {}) => {
+    const eventLog = {
+      event,
+      data,
+      timestamp: new Date().toISOString(),
+      sessionId: Date.now().toString()
+    };
+    
+    // Update local analytics
+    setAnalytics(prev => {
+      const newAnalytics = { ...prev };
+      switch(event) {
+        case 'page_view':
+          newAnalytics.pageViews = prev.pageViews + 1;
+          break;
+        case 'session_started':
+          newAnalytics.sessionsStarted = prev.sessionsStarted + 1;
+          break;
+        case 'message_sent':
+          newAnalytics.messagesCount = prev.messagesCount + 1;
+          break;
+      }
+      return newAnalytics;
+    });
+    
+    // In a real app, send to analytics service
+    console.log('[Analytics]', eventLog);
+  };
+
+  // Track page view on mount
+  useEffect(() => {
+    trackEvent('page_view', { screen: currentScreen });
+  }, [currentScreen]);
+
+  const scenarios = [
+    {
+      id: 'chef',
+      title: 'Min Chef',
+      description: 'Den chef der aldrig lytter eller anerkender dit arbejde',
+      color: 'bg-red-500',
+      emoji: '👔',
+      voice: 'male'
+    },
+    {
+      id: 'partner',
+      title: 'Min Partner',
+      description: 'Frustrationer i forholdet der skal ud',
+      color: 'bg-pink-500', 
+      emoji: '💕',
+      voice: 'female'
+    },
+    {
+      id: 'ex',
+      title: 'Min Ex',
+      description: 'Den ex-kæreste der stadig irriterer dig',
+      color: 'bg-purple-500',
+      emoji: '💔',
+      voice: 'female'
+    },
+    {
+      id: 'forælder',
+      title: 'Mine Forældre',
+      description: 'Forældrerelationer der kan være svære',
+      color: 'bg-blue-500',
+      emoji: '👨‍👩‍👧‍👦',
+      voice: 'male'
+    },
+    {
+      id: 'børn',
+      title: 'Mine Børn',
+      description: 'Teenager-drama og trodsige børn',
+      color: 'bg-orange-500',
+      emoji: '👶',
+      voice: 'female'
+    },
+    {
+      id: 'kollega',
+      title: 'Min Kollega',
+      description: 'Arbejdsplads-drama og irriterende kollegaer',
+      color: 'bg-yellow-500',
+      emoji: '🏢',
+      voice: 'female'
+    },
+    {
+      id: 'venner',
+      title: 'Mine Venner',
+      description: 'Venskaber der frustrerer eller skuffer',
+      color: 'bg-green-500',
+      emoji: '👥',
+      voice: 'female'
+    },
+    {
+      id: 'naboer',
+      title: 'Mine Naboer',
+      description: 'Støjende, irriterende eller ubehøvlede naboer',
+      color: 'bg-teal-500',
+      emoji: '🏠',
+      voice: 'male'
+    },
+    {
+      id: 'trafik',
+      title: 'Trafikanter',
+      description: 'Idioter på vejen og dårlige bilister',
+      color: 'bg-red-600',
+      emoji: '🚗',
+      voice: 'male'
+    },
+    {
+      id: 'kundeservice',
+      title: 'Kundeservice',
+      description: 'Ubrugelig support og bureaukratisk hjælp',
+      color: 'bg-gray-500',
+      emoji: '📞',
+      voice: 'female'
+    },
+    {
+      id: 'politik',
+      title: 'Politikere',
+      description: 'Politiker-løgne og samfunds-frustrationer',
+      color: 'bg-indigo-500',
+      emoji: '🏛️',
+      voice: 'male'
+    },
+    {
+      id: 'sociale_medier',
+      title: 'Sociale Medier',
+      description: 'Online drama, trolls og falske venner',
+      color: 'bg-blue-600',
+      emoji: '📱',
+      voice: 'female'
+    }
+  ];
+
+  const intensityLevels = [
+    {
+      id: 'mild',
+      title: 'Mild',
+      description: 'Lidt udfordrende, mere støttende',
+      color: 'bg-green-500',
+      emoji: '😌'
+    },
+    {
+      id: 'medium',
+      title: 'Medium',
+      description: 'Balanceret mellem provokation og støtte',
+      color: 'bg-yellow-500',
+      emoji: '😐'
+    },
+    {
+      id: 'intens',
+      title: 'Intens',
+      description: 'Meget provokerende, hold dig fast!',
+      color: 'bg-red-500',
+      emoji: '😤'
+    }
+  ];
+
+  // Load session history from in-memory storage
+  useEffect(() => {
+    const savedHistory = JSON.parse(localStorage.getItem('frustration_app_history') || '[]');
+    setSessionHistory(savedHistory);
+  }, []);
+
+  // Save session to history
+  const saveSessionToHistory = (scenario, intensity, messageCount, feedback) => {
+    const session = {
+      id: Date.now(),
+      scenario: scenario.title,
+      scenarioEmoji: scenario.emoji,
+      intensity,
+      messageCount,
+      feedback,
+      timestamp: new Date().toISOString(),
+      date: new Date().toLocaleDateString('da-DK')
+    };
+
+    const newHistory = [session, ...sessionHistory].slice(0, 20); // Keep last 20 sessions
+    setSessionHistory(newHistory);
+    localStorage.setItem('frustration_app_history', JSON.stringify(newHistory));
+  };
+
+  // Initialize speech recognition
+  useEffect(() => {
+    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+      const SpeechRecognition = window.webkitSpeechRecognition || window.SpeechRecognition;
+      recognitionRef.current = new SpeechRecognition();
+      recognitionRef.current.continuous = false;
+      recognitionRef.current.interimResults = false;
+      recognitionRef.current.lang = 'da-DK';
+
+      recognitionRef.current.onresult = (event) => {
+        const transcript = event.results[0][0].transcript;
+        setInputMessage(transcript);
+        setIsListening(false);
+      };
+
+      recognitionRef.current.onerror = (event) => {
+        console.error('Speech recognition error:', event.error);
+        setIsListening(false);
+        
+        switch(event.error) {
+          case 'not-allowed':
+            alert('Mikrofon-adgang nægtet. Gå til browser-indstillinger og tillad mikrofon for denne side.');
+            break;
+          case 'no-speech':
+            alert('Ingen tale registreret. Prøv igen og tal tydeligere.');
+            break;
+          case 'network':
+            alert('Netværksfejl. Check din internet-forbindelse.');
+            break;
+          default:
+            alert('Stemme-fejl: ' + event.error);
+        }
+      };
+
+      recognitionRef.current.onend = () => {
+        setIsListening(false);
+      };
+    }
+
+    // Initialize speech synthesis
+    synthRef.current = window.speechSynthesis;
+    
+    return () => {
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
+      if (synthRef.current) {
+        synthRef.current.cancel();
+      }
+    };
+  }, []);
+
+  // PWA Install prompt
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (e) => {
+      e.preventDefault();
+      deferredPromptRef.current = e;
+      setShowInstallPrompt(true);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    };
+  }, []);
+
+  const handleInstallClick = async () => {
+    if (deferredPromptRef.current) {
+      deferredPromptRef.current.prompt();
+      const { outcome } = await deferredPromptRef.current.userChoice;
+      deferredPromptRef.current = null;
+      setShowInstallPrompt(false);
+    }
+  };
+
+  // Speech to text function
+  const startListening = () => {
+    console.log('Trying to start listening...');
+    
+    if (!recognitionRef.current) {
+      console.error('Speech recognition not supported');
+      alert('Din browser understøtter ikke stemme-genkendelse. Prøv Chrome eller Safari.');
+      return;
+    }
+    
+    if (!isListening) {
+      setInputMessage('');
+      setIsListening(true);
+      
+      try {
+        recognitionRef.current.start();
+        console.log('Speech recognition started');
+      } catch (error) {
+        console.error('Error starting recognition:', error);
+        setIsListening(false);
+        
+        if (error.message.includes('not-allowed')) {
+          alert('Mikrofon-adgang nægtet. Tillad mikrofon-adgang i din browser og prøv igen.');
+        } else {
+          alert('Fejl ved start af stemme-genkendelse: ' + error.message);
+        }
+      }
+    }
+  };
+
+  const stopListening = () => {
+    if (recognitionRef.current && isListening) {
+      recognitionRef.current.stop();
+      setIsListening(false);
+    }
+  };
+
+  // Text to speech function
+  const speakMessage = (text, voice = 'female') => {
+    if (!voiceEnabled || !synthRef.current) return;
+
+    synthRef.current.cancel(); // Stop any ongoing speech
+    
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'da-DK';
+    utterance.rate = 0.9;
+    utterance.pitch = voice === 'female' ? 1.2 : 0.8;
+    
+    // Try to get a Danish voice, fallback to any available voice
+    const voices = synthRef.current.getVoices();
+    const danishVoice = voices.find(v => v.lang.includes('da')) || 
+                       voices.find(v => v.lang.includes('en')) ||
+                       voices[0];
+    
+    if (danishVoice) {
+      utterance.voice = danishVoice;
+    }
+
+    utterance.onstart = () => setIsSpeaking(true);
+    utterance.onend = () => setIsSpeaking(false);
+    utterance.onerror = () => setIsSpeaking(false);
+
+    synthRef.current.speak(utterance);
+  };
+
+  const toggleVoice = () => {
+    setVoiceEnabled(!voiceEnabled);
+    if (!voiceEnabled === false) {
+      synthRef.current?.cancel();
+      setIsSpeaking(false);
+    }
+  };
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  const generateAIResponse = async (userMessage, scenario, phase, retryCount = 0) => {
+    const maxRetries = 3;
+    
+    try {
+      const prompt = `
+Du skriver dialog til en dansk tv-serie om hverdagsfrustationer. Du skal skrive hvad en karakter siger til en anden.
+
+Serie-setting: ${scenario.title} - ${scenario.description}
+Karakterens stemning: ${selectedIntensity} (${intensityLevels.find(i => i.id === selectedIntensity)?.description})
+Scene-fase: ${phase}
+Den anden karakter siger: "${userMessage}"
+Dialog-udveksling nummer: ${messageCount}
+
+${phase === 'provokation' ? `
+Karakteren skal være provokerende og afvisende baseret på stemnings-niveau:
+
+${selectedIntensity === 'mild' ? 'Karakteren er let irriteret men ikke brutal. Mere passiv-aggressiv end direkte angreb. UNDGÅ specifikke corporate-termer, hold det generelt. HOLD DIALOGEN KORT - max 1-2 sætninger.' : ''}
+${selectedIntensity === 'medium' ? 'Karakteren er moderat provokerende. Irriterende og afvisende, men ikke brutal. UNDGÅ specifikke arbejdsplads/corporate-termer. HOLD DIALOGEN KORT - max 1-2 sætninger.' : ''}
+${selectedIntensity === 'intens' ? 'Karakteren er MEGET provokerende og direkte angribende. Brug personlige angreb, vær brutal og sårer. Angrib personlighed og kompetence direkte. HOLD DIALOGEN KORT - max 1-2 sætninger.' : ''}
+
+Tilpas karakterens personlighed til setting (men hold dialogen KORT og GENERISK):
+${scenario.id === 'chef' ? 'En travl, irriteret leder. Afvisende og nedladende. Undgå specifikke arbejdsplads-termer.' : ''}
+${scenario.id === 'partner' ? 'En træt partner der ikke gider høre på det. Afvisende og defensiv.' : ''}
+${scenario.id === 'ex' ? 'En irriterende ex. Kold, manipulerende eller ligegyldig.' : ''}
+${scenario.id === 'forælder' ? 'En forælder der ikke lytter. Nedladende og kritisk.' : ''}
+${scenario.id === 'børn' ? 'Et trodsigt barn/teenager. Respektløs og afvisende.' : ''}
+${scenario.id === 'kollega' ? 'En irriterende kollega. Konkurrerende eller selvoptaget.' : ''}
+${scenario.id === 'venner' ? 'En dårlig ven. Selvoptaget eller ligegyldig.' : ''}
+${scenario.id === 'naboer' ? 'En ubehøvlet nabo. Irriterende og hensynsløs.' : ''}
+${scenario.id === 'trafik' ? 'En aggressiv bilist. Vred og hensynsløs.' : ''}
+${scenario.id === 'kundeservice' ? 'Ubrugelig kundeservice. Bureaukratisk og afvisende.' : ''}
+${scenario.id === 'politik' ? 'En politiker. Undvigende og intetsigende.' : ''}
+${scenario.id === 'sociale_medier' ? 'En online troll. Provokerende og nedladende.' : ''}
+
+Hvis der har været 3+ dialog-udvekslinger, så bliv gradvist mindre provokerende.
+` : phase === 'refleksion' ? `
+Nu skal karakteren skifte tone fuldstændigt i serien. Karakteren har nu indset de havde uret og den anden karakter havde ret. Skriv dialog hvor karakteren er ydmyg, undskyldende og anerkender specifikt hvad de har gjort forkert. Giv den anden karakter den validering og anerkendelse de fortjener.
+` : `
+Karakteren skal være forstående i denne afsluttende scene og hjælpe med at afslutte positivt. Skriv dialog hvor karakteren undskylder hvis de har været hårde og ønsker den anden det bedste.
+`}
+
+Skriv kun karakterens dialog på dansk. Hold det MEGET kort (maksimum 1-2 korte sætninger). UNDGÅ specifikke teknologi-referencer, arbejdsplads-detaljer eller antagelser om miljø.
+
+Respond with JSON: {"response": "karakterens dialog her", "shouldTransition": ${messageCount >= 3 && phase === 'provokation' ? 'true' : 'false'}}
+`;
+
+      const result = await window.claude.complete(prompt);
+      const parsed = JSON.parse(result);
+      
+      // Validate response
+      if (!parsed.response || typeof parsed.response !== 'string') {
+        throw new Error('Invalid AI response format');
+      }
+      
+      return parsed;
+      
+    } catch (error) {
+      logError(error, `AI Generation (attempt ${retryCount + 1})`);
+      
+      // Retry logic
+      if (retryCount < maxRetries) {
+        console.log(`Retrying AI generation... (${retryCount + 1}/${maxRetries})`);
+        await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1))); // Exponential backoff
+        return generateAIResponse(userMessage, scenario, phase, retryCount + 1);
+      }
+      
+      // Fallback responses based on phase and scenario
+      const getFallbackResponse = (phase, scenarioId) => {
+        if (phase === 'provokation') {
+          const scenarioFallbacks = {
+            chef: ["Hvad siger du?", "Ikke mit problem.", "Jeg har ikke tid.", "Det er sådan her det er."],
+            partner: ["Hvad nu igen?", "Du dramatiserer.", "Ikke nu.", "Det er dig der...", "Du forstår ikke..."],
+            ex: ["Hvad vil du?", "Vi er færdige.", "Dit problem.", "Det var din egen skyld."],
+            forælder: ["Hold op.", "Tag ansvar.", "I min tid...", "Du skal lære..."],
+            børn: ["Gider ikke.", "Du forstår ikke noget.", "Det er ikke mit problem.", "Hvad nu?"],
+            kollega: ["Ikke min opgave.", "Jeg har travlt.", "Det kan jeg ikke hjælpe.", "Sådan er det bare."],
+            venner: ["Du er negativ.", "Jeg har problemer.", "Kan vi ikke hygge?", "Du tager det for tungt."],
+            naboer: ["Mit hus, mine regler.", "Du er følsom.", "Ring til politiet.", "Sådan er det bare."],
+            trafik: ["Lær at køre!", "Mit kørespor!", "Kør hurtigere!", "Hold dig væk!"],
+            kundeservice: ["Vi kan ikke hjælpe.", "Det er reglerne.", "Kontakt en anden.", "Sådan er det bare."],
+            politik: ["Vi arbejder på det.", "Ikke vores skyld.", "Vi kan ikke love noget.", "Det er komplekst."],
+            sociale_medier: ["Du er butthurt.", "Bare internettet.", "Luk ned så.", "Det er din egen skyld."]
+          };
+          return scenarioFallbacks[scenarioId] || ["Hvad siger du?", "Dit problem.", "Og så hvad?", "Sådan er det."];
+        } else if (phase === 'refleksion') {
+          return [
+            "Måske jeg var for hård.",
+            "Du har ret. Undskyld.",
+            "Jeg burde lytte bedre.",
+            "Jeg var ikke fair."
+          ];
+        } else {
+          return [
+            "Undskyld jeg var så svær.",
+            "Du fortjener bedre.",
+            "Jeg skal tænke over det.",
+            "Du havde ret."
+          ];
+        }
+      };
+      
+      const fallbackResponses = getFallbackResponse(phase, selectedScenario.id);
+      const randomResponse = fallbackResponses[Math.floor(Math.random() * fallbackResponses.length)];
+      
+      return {
+        response: randomResponse,
+        shouldTransition: false,
+        isFallback: true
+      };
+    }
+  };
+
+  const sendMessage = async () => {
+    if (!inputMessage.trim() || isLoading) return;
+
+    const newMessage = {
+      id: Date.now(),
+      text: inputMessage,
+      sender: 'user',
+      timestamp: new Date()
+    };
+
+    setMessages(prev => [...prev, newMessage]);
+    const currentInput = inputMessage;
+    setInputMessage('');
+    setIsLoading(true);
+    setMessageCount(prev => prev + 1);
+    
+    // Track analytics
+    trackEvent('message_sent', { 
+      scenario: selectedScenario?.id, 
+      intensity: selectedIntensity, 
+      phase: sessionPhase,
+      messageLength: currentInput.length
+    });
+
+    try {
+      const aiResponse = await generateAIResponse(currentInput, selectedScenario, sessionPhase);
+      
+      const aiMessage = {
+        id: Date.now() + 1,
+        text: aiResponse.response,
+        sender: 'ai',
+        timestamp: new Date(),
+        isFallback: aiResponse.isFallback || false
+      };
+
+      setMessages(prev => [...prev, aiMessage]);
+
+      // Speak the AI response if enabled
+      if (voiceEnabled && !aiResponse.isFallback) {
+        try {
+          speakMessage(aiResponse.response, selectedScenario.voice || 'female');
+        } catch (speechError) {
+          logError(speechError, 'Text-to-Speech');
+        }
+      }
+
+      // Check if we should transition phases - force after 3 messages in provocation
+      if ((aiResponse.shouldTransition || messageCount >= 3) && sessionPhase === 'provokation') {
+        setTimeout(() => {
+          setSessionPhase('refleksion');
+          
+          // Create stronger, scenario-specific transition messages where the character admits fault
+          const transitionMessages = {
+            chef: "Stop... Du har ret. Jeg har behandlet dig forfærdeligt og mobber dig foran de andre. Det er fuldstændig uacceptabelt. Undskyld.",
+            partner: "Stop... Du har ret. Jeg er altid så defensiv og lytter aldrig til dig. Jeg skubber dig væk i stedet for at tale sammen. Undskyld.",
+            ex: "Fuck... Du har ret. Jeg var et røvhul dengang og behandlede dig dårligt. Du fortjente meget bedre end mig.",
+            forælder: "Du har ret... Jeg har altid kritiseret dig i stedet for at støtte dig. Jeg lytter ikke til dine følelser. Undskyld.",
+            børn: "Okay... Du har ret. Jeg opfører mig som en lille brat og respekterer dig ikke. Undskyld jeg er så besværlig.",
+            kollega: "Du har ret... Jeg er jaloux og tager æren for andres arbejde. Jeg er en dårlig kollega. Undskyld.",
+            venner: "Du har ret... Jeg tænker kun på mig selv og er en dårlig ven. Du fortjener bedre venner end mig.",
+            naboer: "Du har ret... Jeg er en ubehøvlet nabo der ikke respekterer andre. Undskyld jeg er så irriterende.",
+            trafik: "Du har ret... Jeg kører som et røvhul og tager ingen hensyn. Undskyld jeg er så aggressiv.",
+            kundeservice: "Du har ret... Vores service er elendig og vi hjælper aldrig rigtig. Undskyld for al frustrationen.",
+            politik: "Du har ret... Vi lyver konstant og skuffer folk. Vi lover ting vi ikke kan holde. Undskyld.",
+            sociale_medier: "Du har ret... Jeg er bare en troll der hader på andre. Mit liv er patetisk. Undskyld."
+          };
+          
+          const transitionMessage = {
+            id: Date.now() + 2,
+            text: transitionMessages[selectedScenario.id] || "Stop... Du har ret. Jeg har behandlet dig forfærdeligt. Undskyld.",
+            sender: 'ai',
+            timestamp: new Date(),
+            isTransition: true
+          };
+          setMessages(prev => [...prev, transitionMessage]);
+          
+          // Speak transition message
+          if (voiceEnabled) {
+            setTimeout(() => {
+              try {
+                speakMessage(transitionMessage.text, selectedScenario.voice || 'female');
+              } catch (speechError) {
+                logError(speechError, 'Transition Speech');
+              }
+            }, 1000);
+          }
+        }, 2000);
+      } else if (messageCount >= 7 && sessionPhase === 'refleksion') {
+        setTimeout(() => {
+          setSessionPhase('afslutning');
+        }, 1000);
+      }
+
+    } catch (error) {
+      logError(error, 'Send Message');
+      
+      // Show error message to user
+      const errorMessage = {
+        id: Date.now() + 1,
+        text: "Beklager, der opstod en fejl. Prøv venligst igen.",
+        sender: 'ai',
+        timestamp: new Date(),
+        isError: true
+      };
+      
+      setMessages(prev => [...prev, errorMessage]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const startNewSession = () => {
+    trackEvent('session_started', { 
+      fromScreen: currentScreen,
+      totalSessions: sessionHistory.length + 1
+    });
+    
+    setCurrentScreen('scenarios');
+    setMessages([]);
+    setMessageCount(0);
+    setSessionPhase('provokation');
+    setSelectedScenario(null);
+    setSelectedIntensity('medium');
+    setSessionFeedback(null);
+    setErrors([]); // Clear errors for new session
+  };
+
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  };
+
+  // Loading component
+  const LoadingSpinner = () => (
+    <div className="flex items-center justify-center p-4">
+      <div className="flex space-x-1">
+        <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"></div>
+        <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
+        <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
+      </div>
+    </div>
+  );
+
+  // Debug panel (only show if there are errors)
+  const DebugPanel = () => {
+    if (errors.length === 0) return null;
+    
+    return (
+      <div className="fixed bottom-4 right-4 bg-gray-900 text-white p-3 rounded-lg shadow-lg max-w-xs z-50">
+        <div className="flex items-center justify-between mb-2">
+          <h4 className="font-medium text-xs">Debug Info</h4>
+          <button
+            onClick={() => setErrors([])}
+            className="text-gray-400 hover:text-white text-xs"
+          >
+            ✕
+          </button>
+        </div>
+        
+        <div className="text-xs space-y-1">
+          <div>Sessions: {analytics.sessionsStarted}</div>
+          <div>Messages: {analytics.messagesCount}</div>
+          <div>Errors: {analytics.errorCount}</div>
+          
+          {errors.length > 0 && (
+            <div className="mt-2 pt-2 border-t border-gray-700">
+              <div className="text-red-400">Last Error:</div>
+              <div className="text-gray-300 break-words">
+                {errors[0].message.substring(0, 50)}...
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  if (currentScreen === 'welcome') {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-red-600 via-orange-500 to-yellow-500 flex items-center justify-center p-4">
+        <div className="bg-white rounded-3xl shadow-2xl p-8 max-w-lg w-full text-center relative overflow-hidden">
+          {/* Background pattern */}
+          <div className="absolute inset-0 opacity-5">
+            <div className="absolute top-4 left-4 w-8 h-8 bg-red-500 rounded-full"></div>
+            <div className="absolute top-12 right-8 w-4 h-4 bg-orange-500 rounded-full"></div>
+            <div className="absolute bottom-8 left-12 w-6 h-6 bg-yellow-500 rounded-full"></div>
+            <div className="absolute bottom-4 right-4 w-8 h-8 bg-red-500 rounded-full"></div>
+          </div>
+          
+          <div className="relative z-10">
+            <div className="mb-8">
+              {/* Logo */}
+              <div className="w-24 h-24 bg-gradient-to-br from-red-500 via-orange-500 to-yellow-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">
+                <div className="text-4xl font-bold text-white">F</div>
+              </div>
+              
+              <h1 className="text-4xl font-bold bg-gradient-to-r from-red-600 to-orange-600 bg-clip-text text-transparent mb-3">
+                FrustrationsFri
+              </h1>
+              <p className="text-lg text-gray-600 mb-2">Slip dine frustrationer løs</p>
+              <p className="text-sm text-gray-500">Sikker digital udladning for alle typer frustrationer</p>
+            </div>
+            
+            <div className="mb-8 text-left bg-gray-50 rounded-xl p-6">
+              <h3 className="font-bold text-gray-800 mb-4 text-center">🎯 Hvordan det virker:</h3>
+              <div className="space-y-3">
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 bg-gradient-to-r from-red-500 to-orange-500 rounded-full flex items-center justify-center text-white font-bold text-sm">1</div>
+                  <div>
+                    <p className="font-medium text-gray-800">Vælg din frustration</p>
+                    <p className="text-sm text-gray-600">Chef, partner, trafikanter - 12 scenarier</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 bg-gradient-to-r from-orange-500 to-yellow-500 rounded-full flex items-center justify-center text-white font-bold text-sm">2</div>
+                  <div>
+                    <p className="font-medium text-gray-800">Vælg intensitet</p>
+                    <p className="text-sm text-gray-600">Mild, medium eller intens udfordring</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 bg-gradient-to-r from-yellow-500 to-red-500 rounded-full flex items-center justify-center text-white font-bold text-sm">3</div>
+                  <div>
+                    <p className="font-medium text-gray-800">Få det ud</p>
+                    <p className="text-sm text-gray-600">Sikker samtale med AI der udfordrer dig</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 bg-gradient-to-r from-green-500 to-blue-500 rounded-full flex items-center justify-center text-white font-bold text-sm">4</div>
+                  <div>
+                    <p className="font-medium text-gray-800">Find ro</p>
+                    <p className="text-sm text-gray-600">Refleksion og afspændingsøvelser</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) ? (
+              <div className="bg-green-50 border-2 border-green-200 rounded-xl p-4 mb-6">
+                <div className="flex items-center justify-center gap-2 text-green-700 mb-2">
+                  <Mic className="w-5 h-5" />
+                  <span className="font-semibold">Stemme-support aktiveret</span>
+                </div>
+                <p className="text-sm text-green-600">
+                  Du kan tale direkte til appen for en mere naturlig oplevelse
+                </p>
+              </div>
+            ) : (
+              <div className="bg-amber-50 border-2 border-amber-200 rounded-xl p-4 mb-6">
+                <div className="flex items-center justify-center gap-2 text-amber-700 mb-2">
+                  <MessageCircle className="w-5 h-5" />
+                  <span className="font-semibold">Tekst-chat tilgængelig</span>
+                </div>
+                <p className="text-sm text-amber-600">
+                  Din browser understøtter ikke tale-funktioner. Prøv Chrome eller Safari for bedste oplevelse.
+                </p>
+              </div>
+            )}
+
+            <button
+              onClick={() => setCurrentScreen('scenarios')}
+              className="bg-gradient-to-r from-red-500 via-orange-500 to-yellow-500 text-white px-10 py-4 rounded-xl font-bold text-lg hover:shadow-lg hover:scale-105 transition-all duration-200 w-full mb-4"
+            >
+              🚀 Start frustration session
+            </button>
+
+            <button
+              onClick={() => setCurrentScreen('find-ro')}
+              className="bg-gradient-to-r from-green-500 via-blue-500 to-purple-500 text-white px-10 py-4 rounded-xl font-bold text-lg hover:shadow-lg hover:scale-105 transition-all duration-200 w-full mb-4"
+            >
+              🧘‍♀️ Find ro & afspænding
+            </button>
+
+            {showInstallPrompt && (
+              <button
+                onClick={handleInstallClick}
+                className="bg-gradient-to-r from-blue-500 to-purple-500 text-white px-8 py-3 rounded-xl font-medium hover:shadow-lg transition-all duration-200 w-full mb-4"
+              >
+                📱 Installer som app
+              </button>
+            )}
+
+            {sessionHistory.length > 0 && (
+              <button
+                onClick={() => setShowHistory(!showHistory)}
+                className="w-full text-gray-600 hover:text-gray-800 transition-colors font-medium"
+              >
+                📊 Mine {sessionHistory.length} tidligere sessioner
+              </button>
+            )}
+
+            {/* Quick stats hvis der er historik */}
+            {showHistory && sessionHistory.length > 0 && (
+              <div className="mt-6 bg-gray-50 rounded-xl p-4 max-h-60 overflow-y-auto">
+                <h4 className="font-bold text-gray-800 mb-4 text-center">📈 Din aktivitet</h4>
+                
+                {/* Quick stats */}
+                <div className="grid grid-cols-3 gap-3 mb-6">
+                  <div className="bg-white rounded-lg p-3 text-center shadow-sm">
+                    <div className="text-2xl font-bold text-red-600">{sessionHistory.length}</div>
+                    <div className="text-xs text-gray-600">Sessioner</div>
+                  </div>
+                  <div className="bg-white rounded-lg p-3 text-center shadow-sm">
+                    <div className="text-2xl font-bold text-orange-600">
+                      {sessionHistory.filter(s => s.feedback).length > 0 ? 
+                        Math.round(sessionHistory.reduce((sum, s) => sum + (s.feedback || 0), 0) / sessionHistory.filter(s => s.feedback).length * 10) / 10 
+                        : '0'
+                      }
+                    </div>
+                    <div className="text-xs text-gray-600">⭐ Snit</div>
+                  </div>
+                  <div className="bg-white rounded-lg p-3 text-center shadow-sm">
+                    <div className="text-2xl font-bold text-yellow-600">
+                      {sessionHistory.reduce((sum, s) => sum + s.messageCount, 0)}
+                    </div>
+                    <div className="text-xs text-gray-600">Beskeder</div>
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  {sessionHistory.slice(0, 5).map(session => (
+                    <div key={session.id} className="bg-white rounded-lg p-3 text-left shadow-sm">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-lg">{session.scenarioEmoji}</span>
+                        <span className="font-medium text-sm text-gray-800">{session.scenario}</span>
+                        <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                          {session.intensity}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center text-xs text-gray-500">
+                        <span>{session.date}</span>
+                        <span>{session.messageCount} beskeder</span>
+                        {session.feedback && <span>⭐ {session.feedback}/5</span>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                {sessionHistory.length > 5 && (
+                  <p className="text-xs text-gray-500 mt-3 text-center">
+                    Viser de 5 seneste af {sessionHistory.length} sessioner
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* Footer info */}
+            <div className="mt-8 pt-6 border-t border-gray-200">
+              <div className="flex justify-center space-x-6 text-sm text-gray-500">
+                <button onClick={() => setCurrentScreen('privacy')} className="hover:text-gray-700 transition-colors">
+                  Privatliv
+                </button>
+                <button onClick={() => setCurrentScreen('about')} className="hover:text-gray-700 transition-colors">
+                  Om os
+                </button>
+                <button onClick={() => setCurrentScreen('contact')} className="hover:text-gray-700 transition-colors">
+                  Kontakt
+                </button>
+              </div>
+              <p className="text-xs text-gray-400 mt-2">
+                © 2025 FrustrationsFri. Hjælper dig med at finde ro.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (currentScreen === 'scenarios') {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-purple-600 via-blue-600 to-teal-600 p-4">
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center mb-8">
+            <h2 className="text-3xl font-bold text-white mb-4">Hvem er du frustreret på?</h2>
+            <p className="text-purple-100 mb-2">Vælg det scenario der passer bedst til din situation</p>
+            <p className="text-purple-200 text-sm">
+              🎯 {scenarios.length} forskellige frustrationstyper tilgængelige
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {scenarios.map(scenario => (
+              <div
+                key={scenario.id}
+                onClick={() => {
+                  setSelectedScenario(scenario);
+                  setCurrentScreen('intensity');
+                }}
+                className="bg-white rounded-xl p-4 cursor-pointer hover:transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl"
+              >
+                <div className={`w-12 h-12 ${scenario.color} rounded-full flex items-center justify-center mx-auto mb-3`}>
+                  <span className="text-2xl">{scenario.emoji}</span>
+                </div>
+                <h3 className="text-lg font-bold text-gray-800 mb-1 text-center">{scenario.title}</h3>
+                <p className="text-gray-600 text-center text-xs leading-tight">{scenario.description}</p>
+                
+                {voiceEnabled && (
+                  <div className="text-center mt-2">
+                    <span className="inline-flex items-center gap-1 text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
+                      <Volume2 className="w-3 h-3" />
+                      {scenario.voice === 'male' ? 'Mand' : 'Kvinde'}
+                    </span>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+
+          <div className="text-center mt-8">
+            <button
+              onClick={() => setCurrentScreen('welcome')}
+              className="text-white hover:text-purple-200 transition-colors"
+            >
+              ← Tilbage til start
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (currentScreen === 'intensity') {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-purple-600 via-blue-600 to-teal-600 p-4">
+        <div className="max-w-2xl mx-auto">
+          <div className="text-center mb-8">
+            <div className="flex items-center justify-center gap-3 mb-4">
+              <div className={`w-12 h-12 ${selectedScenario?.color} rounded-full flex items-center justify-center`}>
+                <span className="text-2xl">{selectedScenario?.emoji}</span>
+              </div>
+              <h2 className="text-3xl font-bold text-white">{selectedScenario?.title}</h2>
+            </div>
+            <p className="text-purple-100 mb-4">Hvor intens skal samtalen være?</p>
+            <p className="text-purple-200 text-sm">Vælg hvor provokerende AI'en skal være for at hjælpe dig med at få frustrationen ud</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            {intensityLevels.map(intensity => (
+              <div
+                key={intensity.id}
+                onClick={() => setSelectedIntensity(intensity.id)}
+                className={`bg-white rounded-xl p-6 cursor-pointer transition-all duration-200 ${
+                  selectedIntensity === intensity.id 
+                    ? 'ring-4 ring-yellow-400 transform scale-105 shadow-2xl' 
+                    : 'hover:transform hover:scale-105 shadow-lg hover:shadow-xl'
+                }`}
+              >
+                <div className={`w-16 h-16 ${intensity.color} rounded-full flex items-center justify-center mx-auto mb-4`}>
+                  <span className="text-3xl">{intensity.emoji}</span>
+                </div>
+                <h3 className="text-xl font-bold text-gray-800 mb-2 text-center">{intensity.title}</h3>
+                <p className="text-gray-600 text-center text-sm">{intensity.description}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="text-center">
+            <button
+              onClick={() => {
+                setCurrentScreen('chat');
+                
+                // Create role-specific welcome messages
+                const welcomeMessages = {
+                  chef: "Hvad vil du? Jeg har travlt og mange vigtige ting at tage mig af.",
+                  partner: "Hvad er der nu? Jeg har lige haft en lang dag og gider ikke mere drama.",
+                  ex: "Nå, hvad vil du? Jeg troede vi var færdige med hinanden.",
+                  forælder: "Nu må du lige høre efter når jeg taler til dig. Hvad er det der er så vigtigt?",
+                  børn: "Hvad er det nu? Jeg gider ikke høre på dine klager igen.",
+                  kollega: "Hej! Jeg har forresten lige fået ros af chefen for mit arbejde. Hvad ville du?",
+                  venner: "Hey! Jeg har det faktisk rigtig godt for tiden. Hvad er der?",
+                  naboer: "Nå, hvad vil du nu? Jeg håber ikke det er for at klage igen.",
+                  trafik: "Hvad fanden laver du? Kan du ikke køre ordenligt?",
+                  kundeservice: "Hej og tak for din henvendelse. Hvad kan jeg hjælpe med i dag?",
+                  politik: "Vi arbejder hårdt for befolkningen hver dag. Hvad er dit spørgsmål?",
+                  sociale_medier: "Nå, endnu en der skal klage over noget online. Hvad er det denne gang?"
+                };
+                
+                const welcomeMessage = {
+                  id: 1,
+                  text: welcomeMessages[selectedScenario.id] || "Hvad vil du?",
+                  sender: 'ai',
+                  timestamp: new Date()
+                };
+                setMessages([welcomeMessage]);
+                
+                // Speak the welcome message after a short delay
+                setTimeout(() => {
+                  if (voiceEnabled) {
+                    speakMessage(welcomeMessage.text, selectedScenario.voice);
+                  }
+                }, 1000);
+              }}
+              className="bg-gradient-to-r from-orange-500 to-red-500 text-white px-8 py-3 rounded-lg font-semibold hover:from-orange-600 hover:to-red-600 transition-all duration-200 transform hover:scale-105 mb-4"
+            >
+              Start samtale 🚀
+            </button>
+
+            <div className="space-y-2">
+              <button
+                onClick={() => setCurrentScreen('scenarios')}
+                className="block mx-auto text-white hover:text-purple-200 transition-colors text-sm"
+              >
+                ← Tilbage til scenarier
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (currentScreen === 'find-ro') {
+    return (
+      <FindRoComponent 
+        sessionFeedback={null}
+        setSessionFeedback={() => {}}
+        selectedScenario={null}
+        selectedIntensity={null}
+        messageCount={0}
+        saveSessionToHistory={() => {}}
+        startNewSession={() => setCurrentScreen('welcome')}
+      />
+    );
+  }
+
+  if (currentScreen === 'chat') {
+    return (
+      <div className="min-h-screen bg-gray-100 flex flex-col">
+        {/* Header */}
+        <div className="bg-white shadow-sm border-b p-3 md:p-4">
+          <div className="max-w-4xl mx-auto flex items-center justify-between">
+            <div className="flex items-center gap-2 md:gap-3">
+              <div className={`w-8 h-8 md:w-10 md:h-10 ${selectedScenario?.color} rounded-full flex items-center justify-center`}>
+                <span className="text-lg md:text-xl">{selectedScenario?.emoji}</span>
+              </div>
+              <div>
+                <h2 className="font-bold text-gray-800 text-sm md:text-base">{selectedScenario?.title}</h2>
+                <p className="text-xs md:text-sm text-gray-600">
+                  {sessionPhase === 'provokation' ? `Få det ud 💢 (${selectedIntensity})` : 
+                   sessionPhase === 'refleksion' ? 'Reflekter 🤔' : 'Afslut 🌅'}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 md:gap-3">
+              <button
+                onClick={toggleVoice}
+                className={`p-1 md:p-2 rounded-lg transition-colors ${
+                  voiceEnabled ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-400'
+                }`}
+                title={voiceEnabled ? 'Lyd til' : 'Lyd fra'}
+              >
+                {voiceEnabled ? <Volume2 className="w-4 h-4 md:w-5 md:h-5" /> : <VolumeX className="w-4 h-4 md:w-5 md:h-5" />}
+              </button>
+              
+              <button
+                onClick={startNewSession}
+                className="flex items-center gap-1 md:gap-2 text-gray-600 hover:text-gray-800 transition-colors text-xs md:text-sm"
+              >
+                <RotateCcw className="w-3 h-3 md:w-4 md:h-4" />
+                <span className="hidden md:inline">Ny session</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Messages */}
+        <div className="flex-1 overflow-y-auto p-3 md:p-4">
+          <div className="max-w-4xl mx-auto space-y-3 md:space-y-4">
+            {messages.map(message => (
+              <div
+                key={message.id}
+                className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}
+              >
+                <div
+                  className={`max-w-xs md:max-w-md lg:max-w-lg px-3 md:px-4 py-2 rounded-lg text-sm md:text-base ${
+                    message.sender === 'user'
+                      ? 'bg-blue-500 text-white rounded-br-none'
+                      : message.isTransition
+                      ? 'bg-green-100 text-green-800 border border-green-200 rounded-bl-none'
+                      : 'bg-white text-gray-800 shadow-sm rounded-bl-none'
+                  }`}
+                >
+                  <p className={`${message.isTransition ? 'font-medium' : ''}`}>{message.text}</p>
+                  <p className={`text-xs mt-1 ${
+                    message.sender === 'user' ? 'text-blue-100' : 'text-gray-500'
+                  }`}>
+                    {message.timestamp.toLocaleTimeString('da-DK', { 
+                      hour: '2-digit', 
+                      minute: '2-digit' 
+                    })}
+                  </p>
+                </div>
+              </div>
+            ))}
+            
+            {isLoading && (
+              <div className="flex justify-start">
+                <div className="bg-white text-gray-800 shadow-sm rounded-lg rounded-bl-none px-3 md:px-4 py-2">
+                  <div className="flex space-x-1">
+                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
+                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
+                  </div>
+                </div>
+              </div>
+            )}
+            <div ref={messagesEndRef} />
+          </div>
+        </div>
+
+        {/* Input */}
+        {sessionPhase !== 'afslutning' ? (
+          <div className="bg-white border-t p-3 md:p-4">
+            <div className="max-w-4xl mx-auto">
+              {/* Voice recognition status */}
+              {isListening && (
+                <div className="mb-3 text-center">
+                  <div className="inline-flex items-center gap-2 bg-red-100 text-red-700 px-3 md:px-4 py-2 rounded-lg text-sm">
+                    <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
+                    Lytter... Tal nu
+                  </div>
+                </div>
+              )}
+              
+              {isSpeaking && (
+                <div className="mb-3 text-center">
+                  <div className="inline-flex items-center gap-2 bg-blue-100 text-blue-700 px-3 md:px-4 py-2 rounded-lg text-sm">
+                    <Volume2 className="w-4 h-4 animate-pulse" />
+                    Taler...
+                  </div>
+                </div>
+              )}
+
+              <div className="flex gap-2">
+                <textarea
+                  value={inputMessage}
+                  onChange={(e) => setInputMessage(e.target.value)}
+                  onKeyPress={handleKeyPress}
+                  placeholder={isListening ? "Lytter..." : 
+                    sessionPhase === 'provokation' ? 
+                    "Fortæl om din frustration..." : 
+                    "Hvordan har du det nu?"}
+                  className="flex-1 border border-gray-300 rounded-lg px-3 md:px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none text-sm md:text-base"
+                  rows="2"
+                  disabled={isLoading || isListening}
+                />
+                
+                {/* Microphone button */}
+                {recognitionRef.current && (
+                  <button
+                    onClick={isListening ? stopListening : startListening}
+                    disabled={isLoading || isSpeaking}
+                    className={`px-3 md:px-4 py-2 rounded-lg transition-colors flex items-center gap-2 text-sm md:text-base ${
+                      isListening 
+                        ? 'bg-red-500 text-white hover:bg-red-600' 
+                        : 'bg-gray-500 text-white hover:bg-gray-600'
+                    } disabled:bg-gray-300 disabled:cursor-not-allowed`}
+                    title={isListening ? 'Stop optagelse' : 'Start optagelse'}
+                  >
+                    {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+                  </button>
+                )}
+                
+                <button
+                  onClick={sendMessage}
+                  disabled={!inputMessage.trim() || isLoading || isListening}
+                  className="bg-blue-500 text-white px-4 md:px-6 py-2 rounded-lg hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center gap-2 text-sm md:text-base"
+                >
+                  <Send className="w-4 h-4" />
+                  <span className="hidden md:inline">Send</span>
+                </button>
+              </div>
+              
+              {/* Voice instructions */}
+              {recognitionRef.current && (
+                <div className="mt-2 text-center">
+                  <p className="text-xs text-gray-500">
+                    💡 Tip: Brug mikrofonen 🎤 for en mere naturlig samtale-oplevelse
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        ) : (
+          <FindRoComponent 
+            sessionFeedback={sessionFeedback}
+            setSessionFeedback={setSessionFeedback}
+            selectedScenario={selectedScenario}
+            selectedIntensity={selectedIntensity}
+            messageCount={messageCount}
+            saveSessionToHistory={saveSessionToHistory}
+            startNewSession={startNewSession}
+          />
+        )}
+      </div>
+    );
+  }
+
+  if (currentScreen === 'privacy') {
+    return (
+      <div className="min-h-screen bg-gray-50 p-4">
+        <div className="max-w-4xl mx-auto">
+          <div className="bg-white rounded-xl shadow-lg p-8">
+            <div className="flex items-center gap-4 mb-8">
+              <button
+                onClick={() => setCurrentScreen('welcome')}
+                className="text-gray-600 hover:text-gray-800 transition-colors"
+              >
+                ← Tilbage
+              </button>
+              <h1 className="text-3xl font-bold text-gray-800">Privatlivspolitik</h1>
+            </div>
+
+            <div className="prose max-w-none">
+              <h2 className="text-xl font-semibold text-gray-800 mb-4">Dine data er sikre</h2>
+              
+              <div className="bg-green-50 border-l-4 border-green-500 p-4 mb-6">
+                <p className="text-green-800 font-medium">
+                  🛡️ FrustrationsFri gemmer IKKE dine samtaler eller personlige oplysninger online.
+                </p>
+              </div>
+
+              <h3 className="text-lg font-semibold text-gray-800 mb-3">Hvad vi gemmer</h3>
+              <ul className="list-disc pl-6 space-y-2 text-gray-700 mb-6">
+                <li><strong>Session-statistikker:</strong> Antal sessioner, ratings og datoer - kun på din egen enhed</li>
+                <li><strong>Indstillinger:</strong> Lydpræferencer og app-indstillinger - lokalt i din browser</li>
+                <li><strong>IKKE samtaleindhold:</strong> Vi gemmer aldrig hvad du siger eller skriver</li>
+              </ul>
+
+              <h3 className="text-lg font-semibold text-gray-800 mb-3">Hvordan vi beskytter dig</h3>
+              <ul className="list-disc pl-6 space-y-2 text-gray-700 mb-6">
+                <li><strong>Lokal lagring:</strong> Alt gemmes kun på din enhed</li>
+                <li><strong>Ingen tracking:</strong> Vi sporer ikke din aktivitet eller adfærd</li>
+                <li><strong>Anonymt:</strong> Ingen personlige oplysninger kræves eller indsamles</li>
+                <li><strong>Sikker forbindelse:</strong> Al kommunikation er krypteret via HTTPS</li>
+              </ul>
+
+              <h3 className="text-lg font-semibold text-gray-800 mb-3">Tredjeparts tjenester</h3>
+              <p className="text-gray-700 mb-4">
+                FrustrationsFri bruger AI-teknologi til at generere svar. Dine beskeder sendes til AI-tjenesten,
+                men de gemmes ikke permanent og er ikke knyttet til din identitet.
+              </p>
+
+              <h3 className="text-lg font-semibold text-gray-800 mb-3">Dine rettigheder</h3>
+              <ul className="list-disc pl-6 space-y-2 text-gray-700 mb-6">
+                <li>Du kan slette alle lokale data ved at rydde browser-data</li>
+                <li>Du kan til enhver tid stoppe brugen af tjenesten</li>
+                <li>Du har ret til at vide hvad vi ved om dig (som er: ingenting!)</li>
+              </ul>
+
+              <div className="bg-blue-50 border-l-4 border-blue-500 p-4 mb-6">
+                <h4 className="font-semibold text-blue-800 mb-2">Kontakt os ved spørgsmål</h4>
+                <p className="text-blue-700">
+                  Har du spørgsmål til vores behandling af data? Kontakt os på{' '}
+                  <button 
+                    onClick={() => setCurrentScreen('contact')}
+                    className="underline hover:text-blue-900"
+                  >
+                    vores kontaktside
+                  </button>
+                </p>
+              </div>
+
+              <p className="text-sm text-gray-500">
+                Sidst opdateret: {new Date().toLocaleDateString('da-DK')}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (currentScreen === 'about') {
+    return (
+      <div className="min-h-screen bg-gray-50 p-4">
+        <div className="max-w-4xl mx-auto">
+          <div className="bg-white rounded-xl shadow-lg p-8">
+            <div className="flex items-center gap-4 mb-8">
+              <button
+                onClick={() => setCurrentScreen('welcome')}
+                className="text-gray-600 hover:text-gray-800 transition-colors"
+              >
+                ← Tilbage
+              </button>
+              <h1 className="text-3xl font-bold text-gray-800">Om FrustrationsFri</h1>
+            </div>
+
+            <div className="prose max-w-none">
+              <div className="bg-gradient-to-r from-red-100 to-orange-100 rounded-xl p-6 mb-8">
+                <h2 className="text-2xl font-bold text-gray-800 mb-4">Vores mission</h2>
+                <p className="text-lg text-gray-700">
+                  At give alle et sikkert rum til at udtrykke og bearbejde deres frustrationer, 
+                  så de kan finde indre ro og velvære.
+                </p>
+              </div>
+
+              <h3 className="text-xl font-semibold text-gray-800 mb-4">Hvorfor FrustrationsFri?</h3>
+              <p className="text-gray-700 mb-6">
+                Vi lever i en stressfuld verden hvor frustrationer hober sig op. Mange mennesker 
+                har ikke et sikkert sted at udtrykke deres følelser uden at bekymre sig om 
+                konsekvenser eller dømmende blikke. FrustrationsFri giver dig det rum.
+              </p>
+
+              <div className="grid md:grid-cols-2 gap-6 mb-8">
+                <div className="bg-blue-50 rounded-lg p-6">
+                  <h4 className="font-semibold text-blue-800 mb-3">🎯 Sikker udladning</h4>
+                  <p className="text-blue-700 text-sm">
+                    Få dine frustrationer ud uden at skade relationer eller dit omdømme. 
+                    AI'en er trænet til at udfordre dig på en konstruktiv måde.
+                  </p>
+                </div>
+                
+                <div className="bg-green-50 rounded-lg p-6">
+                  <h4 className="font-semibold text-green-800 mb-3">🧠 Mentalt helbred</h4>
+                  <p className="text-green-700 text-sm">
+                    Undertrykte frustrationer kan føre til stress, angst og depression. 
+                    Ved at udtrykke dem sundt kan du forbedre dit mentale velbefindende.
+                  </p>
+                </div>
+                
+                <div className="bg-purple-50 rounded-lg p-6">
+                  <h4 className="font-semibold text-purple-800 mb-3">⏰ Tilgængeligt 24/7</h4>
+                  <p className="text-purple-700 text-sm">
+                    Frustrationer kommer ikke på belejlige tidspunkter. Med FrustrationsFri 
+                    kan du få hjælp når du har brug for det - dag som nat.
+                  </p>
+                </div>
+                
+                <div className="bg-orange-50 rounded-lg p-6">
+                  <h4 className="font-semibold text-orange-800 mb-3">💪 Byg resiliens</h4>
+                  <p className="text-orange-700 text-sm">
+                    Lær at håndtere frustrationer på en sund måde og byg mental styrke 
+                    til fremtidige udfordringer.
+                  </p>
+                </div>
+              </div>
+
+              <h3 className="text-xl font-semibold text-gray-800 mb-4">Hvordan det virker</h3>
+              <div className="bg-gray-50 rounded-lg p-6 mb-6">
+                <div className="space-y-4">
+                  <div className="flex gap-4">
+                    <div className="w-8 h-8 bg-red-500 rounded-full flex items-center justify-center text-white font-bold text-sm">1</div>
+                    <div>
+                      <h5 className="font-semibold text-gray-800">Provokationsfase</h5>
+                      <p className="text-gray-600 text-sm">AI'en udfordrer dig for at hjælpe dig med at få frustrationen ud</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-4">
+                    <div className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center text-white font-bold text-sm">2</div>
+                    <div>
+                      <h5 className="font-semibold text-gray-800">Refleksionsfase</h5>
+                      <p className="text-gray-600 text-sm">Skifter til empati og hjælper dig med at forstå dine følelser</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-4">
+                    <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center text-white font-bold text-sm">3</div>
+                    <div>
+                      <h5 className="font-semibold text-gray-800">Afslutningsfase</h5>
+                      <p className="text-gray-600 text-sm">Giver dig værktøjer til ro og afspænding</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <h3 className="text-xl font-semibold text-gray-800 mb-4">Forskning og evidens</h3>
+              <p className="text-gray-700 mb-4">
+                Udtrykkende skrivning og verbal udladning har vist sig at have positive effekter på:
+              </p>
+              <ul className="list-disc pl-6 space-y-1 text-gray-700 mb-6">
+                <li>Reduktion af stress og angst</li>
+                <li>Forbedret immunforsvar</li>
+                <li>Bedre søvnkvalitet</li>
+                <li>Øget emotionel regulering</li>
+                <li>Forbedrede relationer</li>
+              </ul>
+
+              <div className="bg-yellow-50 border-l-4 border-yellow-500 p-4">
+                <p className="text-yellow-800">
+                  <strong>Vigtigt:</strong> FrustrationsFri erstatter ikke professionel terapi eller 
+                  medicinsk behandling. Ved alvorlige mentale helbredsproblemer, kontakt din læge 
+                  eller en psykolog.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (currentScreen === 'contact') {
+    return (
+      <div className="min-h-screen bg-gray-50 p-4">
+        <div className="max-w-2xl mx-auto">
+          <div className="bg-white rounded-xl shadow-lg p-8">
+            <div className="flex items-center gap-4 mb-8">
+              <button
+                onClick={() => setCurrentScreen('welcome')}
+                className="text-gray-600 hover:text-gray-800 transition-colors"
+              >
+                ← Tilbage
+              </button>
+              <h1 className="text-3xl font-bold text-gray-800">Kontakt</h1>
+            </div>
+
+            <div className="space-y-6">
+              <div className="bg-gradient-to-r from-blue-100 to-purple-100 rounded-xl p-6">
+                <h2 className="text-xl font-semibold text-gray-800 mb-4">Vi er her for at hjælpe</h2>
+                <p className="text-gray-700">
+                  Har du spørgsmål, forslag eller har brug for support? Vi vil gerne høre fra dig.
+                </p>
+              </div>
+
+              <div className="grid gap-6">
+                <div className="bg-blue-50 rounded-lg p-6">
+                  <h3 className="font-semibold text-blue-800 mb-3">📧 Email</h3>
+                  <p className="text-blue-700 mb-2">support@frustrationsfri.dk</p>
+                  <p className="text-blue-600 text-sm">Vi svarer typisk inden for 24 timer</p>
+                </div>
+
+                <div className="bg-green-50 rounded-lg p-6">
+                  <h3 className="font-semibold text-green-800 mb-3">💬 Feedback</h3>
+                  <p className="text-green-700 mb-2">feedback@frustrationsfri.dk</p>
+                  <p className="text-green-600 text-sm">Forslag til forbedringer og nye features</p>
+                </div>
+
+                <div className="bg-red-50 rounded-lg p-6">
+                  <h3 className="font-semibold text-red-800 mb-3">🚨 Teknisk support</h3>
+                  <p className="text-red-700 mb-2">tech@frustrationsfri.dk</p>
+                  <p className="text-red-600 text-sm">Problemer med appen eller mikrofon</p>
+                </div>
+              </div>
+
+              <div className="bg-gray-50 rounded-lg p-6">
+                <h3 className="font-semibold text-gray-800 mb-4">Almindelige spørgsmål</h3>
+                <div className="space-y-3">
+                  <details className="group">
+                    <summary className="font-medium text-gray-700 cursor-pointer group-open:text-blue-600">
+                      Hvorfor virker mikrofonen ikke?
+                    </summary>
+                    <p className="text-gray-600 text-sm mt-2 pl-4">
+                      Mikrofon-funktionen kræver HTTPS og browser-tilladelse. Prøv Chrome eller Safari 
+                      og tillad mikrofon-adgang i browser-indstillingerne.
+                    </p>
+                  </details>
+                  
+                  <details className="group">
+                    <summary className="font-medium text-gray-700 cursor-pointer group-open:text-blue-600">
+                      Er mine samtaler private?
+                    </summary>
+                    <p className="text-gray-600 text-sm mt-2 pl-4">
+                      Ja, vi gemmer ikke dine samtaler. Kun grundlæggende statistikker gemmes lokalt på din enhed.
+                    </p>
+                  </details>
+                  
+                  <details className="group">
+                    <summary className="font-medium text-gray-700 cursor-pointer group-open:text-blue-600">
+                      Kan jeg bruge det på mobilen?
+                    </summary>
+                    <p className="text-gray-600 text-sm mt-2 pl-4">
+                      Ja! Appen virker på alle moderne browsere og kan installeres som app på din telefon.
+                    </p>
+                  </details>
+                </div>
+              </div>
+
+              <div className="text-center">
+                <button
+                  onClick={() => setCurrentScreen('welcome')}
+                  className="bg-gradient-to-r from-blue-500 to-purple-500 text-white px-8 py-3 rounded-lg font-semibold hover:shadow-lg transition-all duration-200"
+                >
+                  Tilbage til app
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      {/* Debug Panel */}
+      <DebugPanel />
+    </div>
+  );
+};
+
+export default FrustrationApp;
